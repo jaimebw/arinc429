@@ -1,5 +1,4 @@
 from typing import Union
-import pdb
 
 
 class Encoder:
@@ -194,7 +193,6 @@ class Encoder:
 
         self.b_arr_val = bytes([byte4,byte3,byte2,byte1])
         self.word_val = int.from_bytes(self.b_arr_val, byteorder='little', signed=False)
-        pdb.set_trace()
 
 
     def _encode_dsc(self):
