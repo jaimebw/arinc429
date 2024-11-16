@@ -31,3 +31,7 @@ dev = [
 
 [tool.setuptools]
 packages = ["arinc429"]
+
+[project.urls]
+Homepage = "https://github.com/jaimebw/arinc429"
+Issues = "https://github.com/jaimebw/arinc429/issues"
