@@ -8,8 +8,8 @@ pip install arinc429
 
 ## Examples
 ```
-from arinc429 import Arinc429
-    a429 = Arinc429Encoder()
+from arinc429 import Encoder 
+    a429 = Encoder()
     det= {
             "label":0o205,
             "value":100,
@@ -22,6 +22,18 @@ from arinc429 import Arinc429
     bin_vals = a429.b_arr
 
 ```
+## Roadmap
+
+1. Encode DSC
+2. Encode BCD
+3. Mixed encoding (DSC + BNR)
+
+4. Decode BNR
+4. Decode ..
+
+
+5. Implement in C
+
 
 
 

@@ -1,14 +1,12 @@
-import pytest
-from src import Arinc429Encoder
+from arinc429 import Encoder
 
-@pytest.mark.skip
 def test_bnr_zero():
-    a429 = Arinc429Encoder()
+    a429 = Encoder()
     a429.encode(encoding="BNR")
     assert(a429.b_arr == b"\x80\x00\x00\x00")
 
 def test_brn_cases():
-    a429 = Arinc429Encoder()
+    a429 = Encoder()
     det= {
             "label":0o205,
             "value":100,
