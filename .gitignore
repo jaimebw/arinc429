@@ -1,4 +1,6 @@
 .DS_store
+dist
 venv
 __pycache__
+arinc429.egg-info
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arinc429"
-version = "0.1.0"
+version = "0.1.1"
 description = "ARINC 429 Protocol Implementation"
 authors = [
     {name = "Jaime Bowen Varela", email = "jaimebwv@gmail.com"},  # TODO: Update name and email
@@ -31,3 +31,7 @@ dev = [
 
 [tool.setuptools]
 packages = ["arinc429"]
+
+[project.urls]
+Homepage = "https://github.com/jaimebw/arinc429"
+Issues = "https://github.com/jaimebw/arinc429/issues"

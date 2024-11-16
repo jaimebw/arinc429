@@ -1,9 +1,24 @@
 from typing import Union
 
 
-
 class Encoder:
     def __init__(self)->None:
+        """Initialize an ARINC429 encoder with default values.
+
+        Attributes:
+            data (Union[int,float]): The encoded data value after processing
+            label (int): 8-bit ARINC429 label (0-255)
+            sdi (int): Source/Destination Identifier (0-3)
+            ssm (int): Sign/Status Matrix (0-3)
+            value (Union[int,float]): Raw input value before encoding
+            encoding (str): Encoding type ("BNR", "BCD", or "DSC")
+            msb (int): Most Significant Bit position (11-29)
+            lsb (int): Least Significant Bit position (9-29)
+            offset (Union[int,float]): BNR encoding offset value
+            scale (Union[int,float]): BNR encoding scale factor
+            word (int): Final 32-bit ARINC429 word
+            b_arr (bytes): Byte array representation of the ARINC word
+        """
         # General stuff
         self.data:Union[int,float] = 0
         self.label:int = 0
@@ -16,16 +31,15 @@ class Encoder:
         # BRN encoding
         self.offset:Union[int,float] = 0
         self.scale:Union[int, float] = 1
-        # BCD encoding
-        self.word:int = 0
-        self.b_arr: bytes = b"0"
+        # Output stuff
+        self.word_val:int = 0
+        self.b_arr_val: bytes = b"0"
 
-        #
     def __repr__(self)->str:
         return f"""Arinc429Encoder(label={self.label}, 
                 sdi={self.sdi}, ssm={self.ssm}, value={self.value}, 
                 encoding={self.encoding}, data={self.data}
-                word ={hex(self.word)})"""
+                word ={hex(self.word_val)})"""
 
     def encode(self, value:Union[int, float] = 0, 
                msb:int = 29, 
@@ -48,7 +62,6 @@ class Encoder:
         if self.encoding == "BNR":
             self._encode_bnr()
         elif self.encoding == "BCD":
-            raise NotImplementedError("BCD encoding not implemnted yet :(")
             self._encode_bcd()
         elif self.encoding == "DSC":
             raise NotImplementedError("DSC encoding not implemnted yet :(")
@@ -73,9 +86,13 @@ class Encoder:
     def _check_lsb(self):
         if not 9<=self.lsb<=29:
             raise ValueError("The least significant bit cannot be bigger than 29 or smaller than 9")
+    @property
+    def word(self)->int:
+        return self.word_val
 
-
-
+    @property
+    def bword(self)->bytes:
+        return self.b_arr_val
     def _encode_bnr(self):
         """
         Encode following the BNR schema
@@ -103,7 +120,7 @@ class Encoder:
 
         # Byte 4- Data + SSM + Parity
         byte4  = 0
-        byte4 |= (int(self.data) >> (mov +8)) & 0x3F
+        byte4 |= (int(self.data) >> (mov +12)) & 0x3F
         byte4 |= self.ssm  << 5
 
         parity= self._get_parity(bytes([byte1,byte2,byte3,byte4]))
@@ -111,9 +128,9 @@ class Encoder:
         if parity: # If not, the parity is already set to zero
             byte4 |= 0x80
 
-        self.b_arr = bytes([byte4,byte3,byte2,byte1])
+        self.b_arr_val = bytes([byte4,byte3,byte2,byte1])
 
-        self.word = int.from_bytes(self.b_arr, byteorder='little', signed=False)
+        self.word_val = int.from_bytes(self.b_arr_val, byteorder='little', signed=False)
 
     def _get_mask(self,n: int) -> int:
         """
@@ -131,8 +148,53 @@ class Encoder:
         return 0xFF >> n
         
     def _encode_bcd(self):
+        """
+        BCD encoding for arinc429 data
+        """
+        mov = 2 # We dont care about MSB or LSB for BCD
+        if self.value < 0:
+            raise ValueError("BCD encoding does not support negative values. Use BNR encoding instead.")
 
-        pass
+        self.data = self.value
+        if self.value > 79999: # Cant encode antyhing bigger than this
+            self.data = self.data//10
+        # Encode data for BCD
+        iterval = int(self.data)
+        i = 0
+        encVal = 0
+        while(iterval>0):
+            encVal |= (iterval%10) << (4*i)
+            iterval //=10
+            i+=1
+        self.data = encVal 
+        # Normal encoding process
+        # Byte 1 
+        byte1 = self._reverse_label(self.label)
+
+        # Byte 2
+        byte2 = self.sdi
+        byte2 |= (int(self.data) & 0x3F) << mov
+        byte2 &= 0xFF
+
+        # Byte 3: Data
+        byte3 = 0
+        byte3 |= (int(self.data) >> (mov+4))
+        byte3 &= 0xFF
+        # Byte 4- Data + SSM + Parity
+        byte4  = 0
+        byte4 |= (int(self.data) >> (mov +12)) & 0x3F
+        byte4 |= self.ssm  << 5
+
+
+        parity = self._get_parity(bytes([byte1,byte2,byte3,byte4]))
+
+        if parity: # If not, the parity is already set to zero
+            byte4 |= 0x80
+
+        self.b_arr_val = bytes([byte4,byte3,byte2,byte1])
+        self.word_val = int.from_bytes(self.b_arr_val, byteorder='little', signed=False)
+
+
     def _encode_dsc(self):
 
         pass
@@ -168,7 +230,10 @@ class Encoder:
 
         return label
 
-
-    def get_data(self):
+    @property
+    def data_val(self)->Union[int,float]:
+        """ 
+        Return the value of the processed value to be encoded
+        """
         return self.data
 
