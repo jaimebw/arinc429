@@ -32,7 +32,16 @@ class ArincWord:
         return self.byte4 & 0x80
 
     def visualize(self)->str:
-        """Returns a string visualization of the ARINC word bits in markdown table format"""
+        """Returns a string visualization of the ARINC word bits in markdown table format
+
+        Like this :
+        |32|31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|9 |8 |7 |6 |5 |4 |3 |2 |1 |
+        |--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+        |0 |1 |1 |0 |0 |0 |0 |0 |0 |0 |1 |1 |1 |1 |1 |1 |1 |0 |0 |0 |0 |0 |0 |0 |1 |1 |0 |1 |1 |0 |1 |1 |
+
+        This is really useful for debugging purposes or to visualize the bits of an ARINC word
+
+        """
         bits = []
         for byte in [self.byte4, self.byte3, self.byte2, self.byte1]:
             bits.extend([str((byte >> i) & 1) for i in range(7,-1,-1)])

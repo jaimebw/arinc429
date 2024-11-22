@@ -1,47 +1,6 @@
 from typing import Union, List
+from .common import ArincWord
 
-from dataclasses import dataclass
-
-@dataclass
-class ArincWord:
-    label: int = 0
-    byte1: int = 0
-    byte2: int = 0
-    byte3: int = 0
-    byte4: int = 0
-    encoding: str = ""
-    msb: Union[int, None] = None
-    lsb: Union[int, None] = None
-    sdi: int = 0
-    ssm: int = 0
-    value: Union[int, float] = 0
-    offset: Union[int, float, None] = None
-    scale: Union[int, float, None] = None
-    data: Union[int, float] = 0
-
-    def __repr__(self):
-                return f"ArincWord(0x{self.byte1:02x},0x{self.byte2:02x},0x{self.byte3:02x},0x{self.byte4:02x})"
-    @property
-    def word(self):
-        return int.from_bytes(bytes([self.byte1,self.byte2,self.byte3,self.byte4]),byteorder="little",signed=False)
-
-    def get_bytes(self)->bytes:
-        return bytes([self.byte4,self.byte3,self.byte2,self.byte1])
-
-    @property
-    def parity(self):
-        return self.byte4 & 0x80
-
-    def visualize(self)->str:
-        """Returns a string visualization of the ARINC word bits in markdown table format"""
-        bits = []
-        for byte in [self.byte4, self.byte3, self.byte2, self.byte1]:
-            bits.extend([str((byte >> i) & 1) for i in range(7,-1,-1)])
-        
-        header = "|" + "|".join(f"{i:^2d}" for i in range(32,0,-1)) + "|"
-        separator = "|" + "|".join("--" for _ in range(32)) + "|"
-        bits_str = "|" + "|".join(f"{b:^2}" for b in bits) + "|"
-        return f"{header}\n{separator}\n{bits_str}"
 
 
 
@@ -141,10 +100,16 @@ class Encoder:
             if not 11 <= msb <= 29:
                 raise ValueError(
                     "The most significant bit cannot be bigger than 29 or smaller than 11")
+
+
         if not 11 <= self.msb <= 29:
             raise ValueError(
                 "The most significant bit cannot be bigger than 29 or smaller than 11"
             )
+    def _check_can_enc_dsc(self,msb)->None:
+        if self.lsb < msb <self.msb:
+            raise ValueError("DSC encoding can only be used out of the used range")
+        
 
     def _check_lsb(self):
         if not 9 <= self.lsb <= 29:
@@ -158,8 +123,9 @@ class Encoder:
         """
         if not self.a429vals:
             raise ValueError("You need to encode a value first before adding DSC values. Use the encode method")
-
+        self._add_encoding("DSC")
         self._check_msb(msb)
+        self._check_can_enc_dsc(msb)
 
         byte1 = self.a429vals[-1].byte1
         byte2 = self.a429vals[-1].byte2
@@ -191,6 +157,7 @@ class Encoder:
     @property
     def bword(self) -> bytes:
         return self.a429vals[-1].get_bytes()
+
     def _can_bnr(self)->None:
         """
         Check if the value can be encoded in the BNR range 
@@ -235,26 +202,13 @@ class Encoder:
         # Byte 4- Data + SSM + Parity
         byte4 = 0
         byte4 |= (int(self.data) >> (mov + 12)) & 0x3F
-
         byte4 |= self.ssm << 5
-
-        # if self.msb < 18:
-        #     byte2 &= self._msb_mask(self.msb)
-        # elif self.msb < 25:
-        #     byte3 &= self._msb_mask(self.msb)
-        # elif self.msb < 29:
-        #     byte4 &= self._msb_mask(self.msb)
 
         parity = self._get_parity(bytes([byte1, byte2, byte3, byte4]))
 
         if parity:  # If not, the parity is already set to zero
             byte4 |= 0x80
 
-        # self.b_arr_val = bytes([byte4, byte3, byte2, byte1])
-        # self.word_val = int.from_bytes(self.b_arr_val, byteorder="little", signed=False)
-
-        # self.word_list.append(self.word_val)
-        # self.blist.append(self.b_arr_val)
 
         word = ArincWord(label=self.label,
                          byte1=byte1,
@@ -270,8 +224,6 @@ class Encoder:
                          offset=self.offset,
                          scale=self.scale,
                          data=self.data)
-        # if self.msb == 23:
-        #     pdb.set_trace()
         self.a429vals.append(word)
 
     def _msb_mask(self, msb) -> int:
@@ -314,6 +266,7 @@ class Encoder:
         self.msb = 29
         self.lsb = 11
         self.encodings = []
+        self.a429vals = []
 
     def _encode_bcd(self):
         """
@@ -360,11 +313,9 @@ class Encoder:
         if parity:  # If not, the parity is already set to zero
             byte4 |= 0x80
 
-        self.b_arr_val = bytes([byte4, byte3, byte2, byte1])
-        self.word_val = int.from_bytes(self.b_arr_val, byteorder="little", signed=False)
 
-        self.word_list.append(self.word_val)
-        self.blist.append(self.b_arr_val)
+        # self.word_list.append(self.word_val)
+        # self.blist.append(self.b_arr_val)
 
         word = ArincWord(label=self.label,
                          byte1=byte1,
@@ -390,7 +341,8 @@ class Encoder:
         # Making sure that only one BNR or BCD encoding is present
 
         if "BNR" in self.encodings or "BCD" in self.encodings:
-            self.encodings = []
+            raise ValueError("Only one BNR or BCD encoding is allowed per word")
+
         self.encodings.append(encoding)
 
     def _encode_dsc(self):
@@ -428,14 +380,22 @@ class Encoder:
         if parity:  # If not, the parity is already set to zero
             byte4 |= 0x80
 
-        self.b_arr_val = bytes([byte4, byte3, byte2, byte1])
-        self.word_val = int.from_bytes(self.b_arr_val, byteorder="little", signed=False)
+        word = ArincWord(label=self.label,
+                         byte1=byte1,
+                         byte2=byte2,
+                         byte3=byte3,
+                         byte4=byte4,
+                         encoding=self.encoding,
+                         msb=None,
+                         lsb=None,
+                         sdi=self.sdi,
+                         ssm=self.ssm,
+                         value=self.value,
+                         offset=None,
+                         scale=None,
+                         data=self.data)
+        self.a429vals.append(word)
 
-        self.word_list.append(self.word_val)
-        self.blist.append(self.b_arr_val)
-
-
-        pass
 
     def _get_parity(self, b_data: bytes) -> bool:
         """

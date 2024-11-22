@@ -9,19 +9,86 @@ pip install arinc429
 ## Examples
 ```python
 from arinc429 import Encoder 
-    a429 = Encoder()
-    det= {
-            "label":0o205,
-            "value":100,
-            "ssm": 0x03,
-            "sdi":0,
-            "encoding":"BNR"
-            }
-    a429.encode(**det)
-    word = a429.word # uint32_t word
-    bin_vals = a429.bword # binary word
+a429 = Encoder()
+det= {
+        "label":0o205,
+        "value":100,
+        "ssm": 0x03,
+        "sdi":0,
+        "encoding":"BNR"
+        }
+a429.encode(**det)
+word = a429.word # uint32_t word
+bin_vals = a429.bword # binary word
+# Multiple words
+a429 = Encoder()
+w1= {
+        "label":0o205,
+        "value":100,
+        "ssm": 0x03,
+        "sdi":0,
+        "msb":29,
+        "lsb":12
+        "encoding":"BNR"
+        }
+w2= {
+        "label":0o205, # Same label as before
+        "value":1, # 1 or 0 as it is DSC
+        "msb":11, # We dont care about lsb
+        "encoding":"DSC"
+        }
+a429.encode(**det)
+a429.encode(**w2)
+word = a429.word # uint32_t word
+
 
 ```
+This API is subject to change.
+
+If you want to encode another value using the same encoder, you need to reset the encoder before.
+```python
+from arinc429 import Encoder 
+a429 = Encoder()
+det= {
+        "label":0o205,
+        "value":100,
+        "ssm": 0x03,
+        "sdi":0,
+        "encoding":"BNR"
+        }
+a429.encode(**det)
+det2= {
+        "label":0o206,
+        "value":100,
+        "ssm": 0x03,
+        "sdi":0,
+        "encoding":"BNR"
+        }
+a429.reset() # If you dont do this, it will raise an exception 
+a429.encode(**det)
+```
+In case you wan to encode a DSC value into a BNR word, you can do it like this:
+```python
+from arinc429 import Encoder 
+a429 = Encoder()
+det= {
+        "label":0o205,
+        "value":100,
+        "ssm": 0x03,
+        "sdi":0,
+        "encoding":"BNR",
+        "msb":28,
+        }
+a429.add_dsc(1,29) # Add a DSC value to the word
+```
+The encoder takes care so you dont shoot your foot while encoding and loosing information,
+it wont let you encode something into a value that is already being used. 
+
+If you were to try use a different msb in the add_dsc method, it would raise an exception as all the bits are already being used.
+
+This wont apply to multiple DSC values, so you can rewrite the DSC values
+
+
 ## Roadmap
 
 * [x] Encode BNR 
