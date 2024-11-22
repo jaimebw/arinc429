@@ -1,8 +1,6 @@
 from arinc429 import Encoder
-import pytest
 
 
-@pytest.mark.skip
 def test_enc_bcd_zero():
     a429 = Encoder()
     a429.encode(encoding="BCD")

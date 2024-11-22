@@ -24,8 +24,10 @@ from arinc429 import Encoder
 ```
 ## Roadmap
 
+* [x] Encode BNR 
 * [x] Encode BCD 
 * [ ] Encode DSC 
+* [ ] Raw encoding ( label + value)
 * [ ] Mixed encoding (DSC + BNR)
 
 * [ ] Decode BNR
@@ -45,7 +47,35 @@ As for docs, I think the API is pretty simple and self-explanatory. If you have 
 
 ## Change log
 
-v0.1.1 - Added BCD encoding
-v0.1.0 - Initial release (encode BNR)
+* v0.1.1 - Added BCD encoding
 
+* v0.1.0 - Initial release (encode BNR)
+
+
+## Documentation
+
+## Technical Overview
+
+This library provides comprehensive support for encoding and decoding ARINC 429 data words. ARINC 429 is a widely used avionics data bus specification that defines how avionics systems communicate in commercial aircraft.
+
+### Supported Encodings
+
+The library currently supports or plans to support the following encoding formats:
+
+- Binary (BNR)
+- Binary Coded Decimal (BCD)
+- Discrete (DSC)
+- Hybrid formats (e.g., BNR + DSC combinations)
+- Raw encoding (custom label + value pairs)
+
+### Flexible Implementation
+
+The library is designed to be flexible and extensible, allowing for:
+
+- Standard ARINC 429 word formats
+- Custom data encoding schemes
+- Direct manipulation of label and data fields
+- Support for various SSM (Sign/Status Matrix) configurations
+
+For specific encoding requirements or custom implementations, please refer to the examples section above.
 
