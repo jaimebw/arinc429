@@ -9,13 +9,13 @@ class ArincWord:
     byte3: int = 0
     byte4: int = 0
     encoding: str = ""
-    msb: Union[int, None] = None
-    lsb: Union[int, None] = None
+    msb: int  = 0
+    lsb: int  = 0
     sdi: int = 0
     ssm: int = 0
     value: Union[int, float] = 0
-    offset: Union[int, float, None] = None
-    scale: Union[int, float, None] = None
+    offset: Union[int, float] = 0
+    scale:  float = 1
     data: Union[int, float] = 0
 
     def __repr__(self):
@@ -30,6 +30,7 @@ class ArincWord:
     @property
     def parity(self):
         return self.byte4 & 0x80
+
 
     def visualize(self)->str:
         """Returns a string visualization of the ARINC word bits in markdown table format
@@ -50,3 +51,17 @@ class ArincWord:
         separator = "|" + "|".join("--" for _ in range(32)) + "|"
         bits_str = "|" + "|".join(f"{b:^2}" for b in bits) + "|"
         return f"{header}\n{separator}\n{bits_str}"
+
+
+def reverse_label(label: int) -> int:
+    """
+    Reverses the bits of an 8-bit unsigned integer using bitwise operations.
+    """
+    if not 0 <= label <= 255:
+        raise ValueError("Input must be an 8-bit unsigned integer (0 <= n <= 255).")
+
+    label = ((label & 0b11110000) >> 4) | ((label & 0b00001111) << 4)
+    label = ((label & 0b11001100) >> 2) | ((label & 0b00110011) << 2)
+    label = ((label & 0b10101010) >> 1) | ((label & 0b01010101) << 1)
+
+    return label

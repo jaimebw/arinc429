@@ -1,5 +1,5 @@
 from typing import Union, List
-from .common import ArincWord
+from .common import ArincWord, reverse_label
 
 
 
@@ -414,18 +414,8 @@ class Encoder:
         return num_ones % 2 == 0
 
     def _reverse_label(self, label: int) -> int:
-        """
-        Reverses the bits of an 8-bit unsigned integer using bitwise operations.
-        """
-        if not 0 <= label <= 255:
-            raise ValueError("Input must be an 8-bit unsigned integer (0 <= n <= 255).")
-
-        label = ((label & 0b11110000) >> 4) | ((label & 0b00001111) << 4)
-        label = ((label & 0b11001100) >> 2) | ((label & 0b00110011) << 2)
-        label = ((label & 0b10101010) >> 1) | ((label & 0b01010101) << 1)
-        self.rlabel = label
-
-        return label
+        self.rlabel = reverse_label(label)
+        return self.rlabel
 
     @property
     def data_val(self) -> Union[int, float]:
