@@ -3,6 +3,10 @@ from typing import Union
 
 @dataclass
 class ArincWord:
+    """
+    Container for an ARINC 429 word.
+
+    """
     label: int = 0
     byte1: int = 0
     byte2: int = 0

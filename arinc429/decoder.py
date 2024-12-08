@@ -1,11 +1,14 @@
-from .common import ArincWord,reverse_label
+from .common import ArincWord, reverse_label
 import struct
 from typing import List,Union
+import warnings
 
 
 class Decoder:
     def __init__(self):
         self.dword:ArincWord = ArincWord()
+        warnings.warn("Decoder is not fully implemented/tested yet. Might not work as expected")
+
 
     def decode(self, 
                word: Union[int, List[int],bytes],

@@ -89,6 +89,21 @@ If you were to try use a different msb in the add_dsc method, it would raise an 
 This wont apply to multiple DSC values, so you can rewrite the DSC values
 
 
+### Container class
+
+There is a container class that allows you to easily work with the Arinc429 words.
+```python
+from arinc429 import Arinc429Word
+
+word = Arinc429Word(
+    byte1=0x00,
+    byte2=0x20,
+    byte3=0x00,
+    byte4=0xe1
+)
+```
+It accepts multiple input formats. For more info, look at the code.
+
 ## Roadmap
 
 * [x] Encode BNR 
@@ -97,7 +112,7 @@ This wont apply to multiple DSC values, so you can rewrite the DSC values
 * [ ] Raw encoding ( label + value)
 * [ ] Mixed encoding (DSC + BNR)
 
-* [ ] Decode BNR
+* [X] Decode BNR
 * [ ] Decode rest of stuff
 
 * [ ] Implement in C
@@ -114,8 +129,8 @@ As for docs, I think the API is pretty simple and self-explanatory. If you have 
 
 ## Change log
 
-* v0.1.1 - Added BCD encoding
-
+* v0.1.2 - Added BCD, DSC, BNR + DSC encoding
+* v0.1.1 - Added BNR encoding
 * v0.1.0 - Initial release (encode BNR)
 
 
