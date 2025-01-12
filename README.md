@@ -1,4 +1,6 @@
-# Arinc 429
+# PyArinc 429
+
+Note: The API is subject to change! The encoder is working the decoder is close to working!
 
 ## How to install
 
@@ -43,7 +45,6 @@ word = a429.word # uint32_t word
 
 
 ```
-This API is subject to change.
 
 If you want to encode another value using the same encoder, you need to reset the encoder before.
 ```python
@@ -104,20 +105,35 @@ word = Arinc429Word(
 ```
 It accepts multiple input formats. For more info, look at the code.
 
+### Decoder
+```python
+from arinc429 import Decoder
+a429 = Decoder()
+word = a429.decode(
+            b"\xa0\x01\xa4\x61",
+            encoding="BNR",
+            )
+assert(word.label== 0o206)
+assert(word.ssm== 0x01)
+assert(word.sdi== 0)
+assert(word.value == 105)
+
+```
 ## Roadmap
 
 * [x] Encode BNR 
 * [x] Encode BCD 
-* [ ] Encode DSC 
-* [ ] Raw encoding ( label + value)
-* [ ] Mixed encoding (DSC + BNR)
+* [x] Encode DSC 
+* [x] Raw encoding ( label + value)
+* [x] Mixed encoding (DSC + BNR)
 
 * [X] Decode BNR
-* [ ] Decode rest of stuff
+* [ ] Decode BCD
+* [ ] Decode DSC
 
 * [ ] Implement in C
 
-I dont really follow a specific roadmap, I just add features as I need them. 
+I dont really follow a specific roadmap; I just add features as I need them.
 
 ## Contributing
 
