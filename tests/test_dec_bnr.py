@@ -29,15 +29,30 @@ def test_dec_bnr_ssm1():
     assert(word.ssm== 0x01)
     assert(word.sdi== 0)
     assert(word.value == 105)
-@pytest.mark.xfail
+
 def test_dec_brn_msb_lsb():
     a429 = Decoder()
     word = a429.decode(
             b"\x60\x0c\x80\x8b",
                 encoding="BNR",
+                lsb = 15
                 )
     assert(word.label== 0o321)
     assert(word.ssm== 0x03)
     assert(word.sdi== 0)
     assert(word.value == 50)
+
+def test_dec_brn_msb_lsb2():
+    a429 = Decoder()
+    word = a429.decode(
+            b"\x60\x3F\x80\xdb",
+                encoding="BNR",
+                lsb =16 ,
+                
+                )
+    assert(word.label== 0o333)
+    assert(word.ssm== 0x03)
+    assert(word.sdi== 0)
+    assert(word.value == 127)
+
 

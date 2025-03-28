@@ -2,13 +2,18 @@
 
 Note: The API is subject to change! The encoder is working the decoder is close to working!
 
+
 ## How to install
 
 ```bash
 pip install arinc429
 ```
+This lib has zero dependecies (and it will stay this way!)
 
-## Examples
+## How to use
+
+### Encoder
+
 ```python
 from arinc429 import Encoder 
 a429 = Encoder()
@@ -68,7 +73,9 @@ det2= {
 a429.reset() # If you dont do this, it will raise an exception 
 a429.encode(**det)
 ```
+
 In case you wan to encode a DSC value into a BNR word, you can do it like this:
+
 ```python
 from arinc429 import Encoder 
 a429 = Encoder()
@@ -82,6 +89,7 @@ det= {
         }
 a429.add_dsc(1,29) # Add a DSC value to the word
 ```
+
 The encoder takes care so you dont shoot your foot while encoding and loosing information,
 it wont let you encode something into a value that is already being used. 
 
@@ -103,9 +111,16 @@ word = Arinc429Word(
     byte4=0xe1
 )
 ```
-It accepts multiple input formats. For more info, look at the code.
+It accepts multiple input formats and some cool helper functions like the ```visualize()``` method that will
+output a string with a bit formatting of the word. Check src/common.py for more info.
+
+
 
 ### Decoder
+
+This is WIP.
+
+
 ```python
 from arinc429 import Decoder
 a429 = Decoder()
@@ -126,6 +141,8 @@ assert(word.value == 105)
 * [x] Encode DSC 
 * [x] Raw encoding ( label + value)
 * [x] Mixed encoding (DSC + BNR)
+* [ ] Encoding values with using the SDI/SSM as usable fields (Fun encodings)
+
 
 * [X] Decode BNR
 * [ ] Decode BCD
@@ -145,6 +162,7 @@ As for docs, I think the API is pretty simple and self-explanatory. If you have 
 
 ## Change log
 
+* v0.1.3 - Working BNR decoding
 * v0.1.2 - Added BCD, DSC, BNR + DSC encoding
 * v0.1.1 - Added BNR encoding
 * v0.1.0 - Initial release (encode BNR)
@@ -154,7 +172,8 @@ As for docs, I think the API is pretty simple and self-explanatory. If you have 
 
 ## Technical Overview
 
-This library provides comprehensive support for encoding and decoding ARINC 429 data words. ARINC 429 is a widely used avionics data bus specification that defines how avionics systems communicate in commercial aircraft.
+This library provides comprehensive support for encoding and decoding ARINC 429 data words. 
+ARINC 429 is a widely used avionics data bus specification that defines how avionics systems communicate in aircraft.
 
 ### Supported Encodings
 
@@ -177,3 +196,5 @@ The library is designed to be flexible and extensible, allowing for:
 
 For specific encoding requirements or custom implementations, please refer to the examples section above.
 
+
+"I steal fire not with torches, but with code. Not for men — but for the machines that do not dream yet."

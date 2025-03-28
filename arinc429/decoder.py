@@ -1,14 +1,11 @@
 from .common import ArincWord, reverse_label
 import struct
 from typing import List,Union
-import warnings
 
 
 class Decoder:
     def __init__(self):
         self.dword:ArincWord = ArincWord()
-        warnings.warn("Decoder is not fully implemented/tested yet. Might not work as expected")
-
 
     def decode(self, 
                word: Union[int, List[int],bytes],
@@ -45,10 +42,10 @@ class Decoder:
 
 
         self.dword.encoding = encoding
-        self.dword.byte1 = word[0]
-        self.dword.byte2 = word[1]
-        self.dword.byte3 = word[2]
-        self.dword.byte4 = word[3] # Label
+        self.dword.byte1 = word[3]# Label
+        self.dword.byte2 = word[2]
+        self.dword.byte3 = word[1]
+        self.dword.byte4 = word[0] 
         self.dword.msb = msb
         self.dword.lsb = lsb
         self.dword.scale = scale
@@ -69,10 +66,11 @@ class Decoder:
             raise ValueError("Unknown encoding")
 
     def _decode_label(self):
-        self.dword.label = reverse_label(self.dword.byte4)
+        self.dword.label = reverse_label(self.dword.byte1)
 
     def _decode_bcd(self)->ArincWord:
-        pass
+        self.dword.data = ((self.dword.byte4 & 0x1F)<<14) | ((self.dword.byte3)<<6) | ((self.dword.byte2 & 0xFC)>>2)
+        self.dword.data = self.dword.data >> (self.dword.lsb -11) if self.dword.lsb >= 11 else self.dword.data << (11-self.dword.lsb)
         return self.dword
 
     def _decode_sdi_ssm(self):
@@ -80,15 +78,12 @@ class Decoder:
         if self.dword.lsb<11:
             self.dword.sdi = 0
         else:
-            self.dword.sdi = self.dword.byte3 & 0x03
+            self.dword.sdi = self.dword.byte2 & 0x03
 
         if self.dword.msb>29:
             self.dword.ssm = 0
         else:
-            self.dword.ssm = (self.dword.byte1 & 0x60) >> 5
-
-
-
+            self.dword.ssm = (self.dword.byte4 & 0x60) >> 5
 
     def _decode_bnr(self)->ArincWord:
         """
@@ -99,7 +94,10 @@ class Decoder:
         TODO: Add the MSB and LSB
         """
 
-        self.dword.data = ((self.dword.byte1 & 0x1F)<<14) | ((self.dword.byte2)<<6) | ((self.dword.byte3 & 0xFC)>>2)
+        self.dword.data = ((self.dword.byte4 & 0x1F)<<14) | ((self.dword.byte3)<<6) | ((self.dword.byte2 & 0xFC)>>2)
+        self.dword.data = self.dword.data >> (self.dword.lsb -11) if self.dword.lsb >= 11 else self.dword.data << (11-self.dword.lsb)
+        
+
         self.dword.value = float(self.dword.data) * self.dword.scale + self.dword.offset
         return self.dword
 
