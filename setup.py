@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="arinc429",
-    version="0.1.2",
+    version="0.1.3",
     description="A library for working with ARINC 429 data",
     author="Jaime Bowen Varela",  # TODO: Add your name
     author_email="jaimebwv@gmail.com",  # TODO: Add your email

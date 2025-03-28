@@ -53,6 +53,7 @@ def test_enc_brn_msb_lsb2():
             "sdi":0,
             "msb": 23,
             "lsb": 16,
+            "scale":1,
             "encoding":"BNR"
             }
     a429.encode(**det)
@@ -72,6 +73,7 @@ def test_enc_brn_msb_not_enough_bits():
     with pytest.raises(ValueError):
         a429.encode(**det)
 # TODO: Implement test_enc_bnr_msb_lsb_more_info_no_sdi
+# Note: this encodes soemthing like longitude  by using the SDI for the extra precision
 @pytest.mark.skip(reason="Not implemented")
 def test_enc_bnr_msb_lsb_more_info_no_sdi():
     a429 = Encoder()
