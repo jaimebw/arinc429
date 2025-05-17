@@ -21,20 +21,30 @@ class ArincWord:
     offset: Union[int, float] = 0
     scale:  float = 1
     data: Union[int, float] = 0
+    max: Union[int,float,None] = None
+    min: Union[int,float,None] = None
 
     def __repr__(self):
                 return f"ArincWord(0x{self.byte1:02x},0x{self.byte2:02x},0x{self.byte3:02x},0x{self.byte4:02x})"
     @property
     def word(self):
+        """
+        Returns the uint32 arinc word from bytes
+        """
         return int.from_bytes(bytes([self.byte1,self.byte2,self.byte3,self.byte4]),byteorder="little",signed=False)
 
     def get_bytes(self)->bytes:
+        """
+        Retruns the bytes of the arinc Word
+        """
         return bytes([self.byte4,self.byte3,self.byte2,self.byte1])
 
     @property
     def parity(self):
+        """
+        Returns the parity of the words
+        """
         return self.byte4 & 0x80
-
 
     def visualize(self)->str:
         """Returns a string visualization of the ARINC word bits in markdown table format
