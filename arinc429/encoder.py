@@ -149,9 +149,11 @@ class Encoder:
         self.a429vals[-1].byte3 = byte3
         self.a429vals[-1].byte4 = byte4
         self.a429vals[-1].encoding += " & DSC"
+        self._build_word(byte4,byte3,byte2,byte1)
         
     @property
     def word(self) -> int:
+
         return self.word_val
 
     @property
@@ -225,6 +227,7 @@ class Encoder:
                          scale=self.scale,
                          data=self.data)
         self.a429vals.append(word)
+        self._build_word(byte4,byte3,byte2,byte1)
 
     def _msb_mask(self, msb) -> int:
         masks = {
@@ -332,6 +335,7 @@ class Encoder:
                          scale=None,
                          data=self.data)
         self.a429vals.append(word)
+        self._build_word(byte4,byte3,byte2,byte1)
 
 
     def _add_encoding(self, encoding: str) -> None:
@@ -395,6 +399,7 @@ class Encoder:
                          scale=None,
                          data=self.data)
         self.a429vals.append(word)
+        self._build_word(byte4,byte3,byte2,byte1)
 
 
     def _get_parity(self, b_data: bytes) -> bool:
@@ -423,3 +428,10 @@ class Encoder:
         Return the value of the processed value to be encoded
         """
         return self.data
+
+    def _build_word(self,byte4,byte3,byte2,byte1):
+        """
+        Build the arinc429 32 bite word form the invidivual bytes
+        """
+        self.word_val = (byte4<<24) | (byte3<<16) | (byte2<<8) | byte1
+
