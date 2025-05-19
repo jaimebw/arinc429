@@ -161,7 +161,7 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 As for docs, I think the API is pretty simple and self-explanatory. If you have any questions, feel free to ask. 
 
 ## Change log
-
+* v0.1.4 - Correced bugs with the encoder when asking for the encoded word
 * v0.1.3 - Working BNR decoding
 * v0.1.2 - Added BCD, DSC, BNR + DSC encoding
 * v0.1.1 - Added BNR encoding
