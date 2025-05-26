@@ -353,13 +353,13 @@ class Encoder:
         """
         DSC encoding for arinc429 data
         """
-        mov = 2  # We dont care about MSB or LSB for BCD
-        if not ((self.value == 0) or (self.value == 1)):
-            raise ValueError(
-                "DSC encoding does not support values other than 0 or 1. Use BCD/BNR encoding instead."
-            )
-
-        self.data = self.value
+        mov = 2
+        data = int(self.value)
+        if (data.bit_length() > ((self.msb - self.lsb)+1)):
+            raise ValueError(f"You need more bits in the word to encode your binary value: {bin(data)}")
+        
+        self.data = int(self.value) << (self.lsb - 11)
+        #breakpoint()
 
         # Encode data for DSC
         # Byte 1
