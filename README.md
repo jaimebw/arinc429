@@ -162,6 +162,7 @@ As for docs, I think the API is pretty simple and self-explanatory. If you have 
 
 ## Change log
 
+
 * v0.1.5 - Corrected DSC encoding, added tests and added BNU encoding
 * v0.1.4 - General bug correction
 * v0.1.3 - Working BNR decoding
