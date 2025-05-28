@@ -118,7 +118,7 @@ output a string with a bit formatting of the word. Check src/common.py for more 
 
 ### Decoder
 
-This is WIP.
+This is WIP. Wont work sometimes...
 
 
 ```python
@@ -162,6 +162,8 @@ As for docs, I think the API is pretty simple and self-explanatory. If you have 
 
 ## Change log
 
+* v0.1.5 - Corrected DSC encoding, added tests and added BNU encoding
+* v0.1.4 - General bug correction
 * v0.1.3 - Working BNR decoding
 * v0.1.2 - Added BCD, DSC, BNR + DSC encoding
 * v0.1.1 - Added BNR encoding
