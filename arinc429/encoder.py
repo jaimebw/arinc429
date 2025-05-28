@@ -1,5 +1,5 @@
 from typing import Union, List
-from .common import ArincWord, reverse_label
+from .common import ArincWord, reverse_label,change_bit
 
 
 
@@ -78,7 +78,7 @@ class Encoder:
             self._encode_bnr()
         elif self.encoding == "BCD":
             self._encode_bcd()
-        elif self.encoding == "DSC":
+        elif self.encoding == "DSC" or self.encoding == "BNU":
             self._encode_dsc()
         else:
             raise ValueError(f"Encoding {self.encoding} not supported")
@@ -117,33 +117,84 @@ class Encoder:
                 "The least significant bit cannot be bigger than 29 or smaller than 9"
             )
 
-    def add_dsc(self,value:int,msb:int):
-        """
-        Add a DSC encoded value to your A429 word
-        """
+    def add_bnu(self,value:int,pos:int):
         if not self.a429vals:
             raise ValueError("You need to encode a value first before adding DSC values. Use the encode method")
-        self._add_encoding("DSC")
-        self._check_msb(msb)
-        self._check_can_enc_dsc(msb)
+        self._add_encoding("BNU")
+        self._check_msb(pos)
+        self._check_can_enc_dsc(pos)
 
         byte1 = self.a429vals[-1].byte1
         byte2 = self.a429vals[-1].byte2
         byte3 = self.a429vals[-1].byte3
         byte4 = self.a429vals[-1].byte4
+        byte4 &= ~(1 << 7) # Clear the parity bit
+        data = (byte4 << 24) | (byte3<<16) | (byte2<<8) | byte1
+        if pos < 11 or pos > 29:
+            raise ValueError("You cannot encode there")
+        width = max(1, value.bit_length())
+        if pos+width >29:
+            raise ValueError("Value too big for the poisiton")
+        mask  = (1 << width) - 1
+        data &= ~(mask << (pos - 1))
+        data= data| ((value& mask) << (pos - 1))
 
-        byte4 &= 0x80 # Clear the parity bit
-
-        if msb <17:
-            byte2 = (byte2& ~(1 << 16- msb)) | (value<< 16- msb)
-        elif msb <25:
-            byte3 = (byte3& ~(1 << 24- msb)) | (value<< 24- msb)
-        else:
-            byte4 = (byte4& ~(1 << 29- msb)) | (value<< 29- msb)
+        byte1 = data & 0xFF
+        byte2 = (data >> 8) & 0xFF
+        byte3 = (data >> 16) & 0xFF
+        byte4 = (data >> 24) & 0xFF
 
         parity = self._get_parity(bytes([byte1, byte2, byte3, byte4]))
         if parity:  # If not, the parity is already set to zero
             byte4 |= 0x80
+
+        self.a429vals[-1].byte2 = byte2
+        self.a429vals[-1].byte3 = byte3
+        self.a429vals[-1].byte4 = byte4
+        self.a429vals[-1].encoding += " & BNU"
+        self._build_word(byte4,byte3,byte2,byte1)
+
+
+
+
+
+    def add_dsc(self,value:int,pos:int):
+        """
+        Add a DSC encoded value to your A429 word.
+        """
+        if not self.a429vals:
+            raise ValueError("You need to encode a value first before adding DSC values. Use the encode method")
+        self._add_encoding("DSC")
+        self._check_msb(pos)
+        self._check_can_enc_dsc(pos)
+
+        byte1 = self.a429vals[-1].byte1
+        byte2 = self.a429vals[-1].byte2
+        byte3 = self.a429vals[-1].byte3
+        byte4 = self.a429vals[-1].byte4
+        byte4 &= ~(1 << 7) # Clear the parity bit
+
+        pos -= 1  # make 1-based user input into 0-based index (0-31)
+
+        byte_index = pos // 8         # 0: byte1, 1: byte2, 2: byte3, 3: byte4
+        bit_in_byte = pos % 8
+
+        if byte_index == 0:
+            raise ValueError(f"Invalid bit position: {pos + 1} You cannot modify the label ;(")
+        elif byte_index == 1:
+            byte2 = change_bit(byte2,bit_in_byte,value)
+        elif byte_index == 2:
+            byte3 = change_bit(byte3,bit_in_byte,value)
+        elif byte_index == 3:
+            byte4 = change_bit(byte4,bit_in_byte,value)
+        else:
+            raise ValueError(f"Invalid bit position: {pos + 1}")
+
+
+        parity = self._get_parity(bytes([byte1, byte2, byte3, byte4]))
+        if parity:  # If not, the parity is already set to zero
+            byte4 |= 0x80
+
 
         self.a429vals[-1].byte2 = byte2
         self.a429vals[-1].byte3 = byte3
@@ -353,13 +404,13 @@ class Encoder:
         """
         DSC encoding for arinc429 data
         """
-        mov = 2  # We dont care about MSB or LSB for BCD
-        if not ((self.value == 0) or (self.value == 1)):
-            raise ValueError(
-                "DSC encoding does not support values other than 0 or 1. Use BCD/BNR encoding instead."
-            )
-
-        self.data = self.value
+        mov = 2
+        data = int(self.value)
+        if (data.bit_length() > ((self.msb - self.lsb)+1)):
+            raise ValueError(f"You need more bits in the word to encode your binary value: {bin(data)}")
+        
+        self.data = int(self.value) << (self.lsb - 11)
+        #breakpoint()
 
         # Encode data for DSC
         # Byte 1

@@ -25,7 +25,7 @@ class ArincWord:
     min: Union[int,float,None] = None
 
     def __repr__(self):
-                return f"ArincWord(0x{self.byte1:02x},0x{self.byte2:02x},0x{self.byte3:02x},0x{self.byte4:02x})"
+        return f"ArincWord(0x{self.byte4:02x},0x{self.byte3:02x},0x{self.byte2:02x},0x{self.byte1:02x})"
     @property
     def word(self):
         """
@@ -38,6 +38,9 @@ class ArincWord:
         Retruns the bytes of the arinc Word
         """
         return bytes([self.byte4,self.byte3,self.byte2,self.byte1])
+
+    def get_label(self)->int:
+        return reverse_label(self.byte1)
 
     @property
     def parity(self):
@@ -79,3 +82,26 @@ def reverse_label(label: int) -> int:
     label = ((label & 0b10101010) >> 1) | ((label & 0b01010101) << 1)
 
     return label
+def change_bit(byte, position, value):
+    """
+    Changes a specific bit in a byte to the given value.
+    
+    Args:
+        byte: The byte to modify
+        position: The bit position (0-7, where 0 is LSB)
+        value: The value to set (0 or 1)
+        
+    Returns:
+        The modified byte
+    """
+    if not 0 <= position <= 7:
+        raise ValueError("Position must be between 0 and 7")
+    if value not in (0, 1):
+        raise ValueError("Value must be 0 or 1")
+    
+    if value == 1:
+        # Set the bit at position
+        return byte | (1 << position)
+    else:
+        # Clear the bit at position
+        return byte & ~(1 << position)

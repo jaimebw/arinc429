@@ -1,4 +1,4 @@
-from arinc429.common import ArincWord,reverse_label
+from arinc429.common import ArincWord,reverse_label,change_bit
 
 
 
@@ -10,3 +10,13 @@ def test_ArincWord():
 def test_reverse_label():
     label = 0o101
     assert reverse_label(label) == 0b10000010
+
+def test_change_bit():
+    byte = 0x0
+    byte = change_bit(byte,0,1)
+    assert byte == 0x1
+    byte = change_bit(byte,1,1)
+    assert byte == 0x3
+    byte = change_bit(byte,0,0)
+    assert byte == 0x2
+
