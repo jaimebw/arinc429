@@ -1,5 +1,5 @@
 from typing import Union, List
-from .common import ArincWord, reverse_label,change_bit
+from .common import ArincWord, reverse_label
 
 
 
@@ -22,31 +22,13 @@ class Encoder:
             word (int): Final 32-bit ARINC429 word
             b_arr (bytes): Byte array representation of the ARINC word
         """
-        # General stuff
-        self.data: Union[int, float] = 0
-        self.label: int = 0
-        self.sdi: int = 0
-        self.ssm: int = 0
-        self.value: Union[int, float] = 0
-        self.encoding: str = ""
-        self.msb: int = 29
-        self.lsb: int = 11
-        self.encodings: List[str] = []  # List of encodings used
-        # BRN encoding
-        self.offset: Union[int, float] = 0
-        self.scale: Union[int, float] = 1
-        # Output stuff
-        self.word_val: int = 0
-        self.b_arr_val: bytes = b"0"
-        # we will use this if more than one encoding is used
-        self.word_list: List[int] = []
-        self.blist: List[bytes] = []
         # Byte list in int
         self.a429vals: List[ArincWord] = []
 
     def __repr__(self) -> str:
         return '\n'.join([str(word) for word in self.a429vals])
-
+    def __getitem__(self, index: int):
+        return self.a429vals[index]
     def encode(
         self,
         value: Union[int, float] = 0,
@@ -59,82 +41,112 @@ class Encoder:
         offset: float = 0,
         encoding: str = "",
     ) -> None:
-        self.value = value
-        self.label = label
-        self.sdi = sdi
-        self.ssm = ssm
-        self.encoding = encoding
-        self.msb = msb
-        self.lsb = lsb
-        self.offset = offset
-        self.scale = scale
-        # Check if the input is valid
-        self._check_sdi()
-        self._check_ssm()
-        self._check_msb()
-        self._check_lsb()
+        """Encode a value into an ARINC429 word.
 
-        if self.encoding == "BNR":
-            self._encode_bnr()
-        elif self.encoding == "BCD":
-            self._encode_bcd()
-        elif self.encoding == "DSC" or self.encoding == "BNU":
-            self._encode_dsc()
+        Args:
+            value (Union[int, float], optional): The value to encode. Defaults to 0.
+            msb (int, optional): Most Significant Bit position (11-29). Defaults to 29.
+            lsb (int, optional): Least Significant Bit position (9-29). Defaults to 11.
+            label (int, optional): 8-bit ARINC429 label (0-255). Defaults to 0.
+            sdi (int, optional): Source/Destination Identifier (0-3). Defaults to 0.
+            ssm (int, optional): Sign/Status Matrix (0-3). Defaults to 0.
+            scale (float, optional): Scale factor for BNR encoding. Defaults to 1.
+            offset (float, optional): Offset value for BNR encoding. Defaults to 0.
+            encoding (str, optional): Encoding type ("BNR", "BCD", "DSC" or "BNU"). Defaults to "".
+
+        Raises:
+            ValueError: If the encoding type is not supported or if parameters are invalid.
+        """
+        self.reset()
+        self._check_sdi(sdi)
+        self._check_ssm(ssm)
+        self._check_msb(msb)
+        self._check_lsb(lsb)
+
+        if encoding == "BNR":
+            self._encode_bnr(encoding,label,msb,lsb,sdi,ssm,scale,offset,value)
+        elif encoding == "BCD":
+            self._encode_bcd(encoding,label,sdi,ssm,int(value))
+        elif encoding == "DSC" or encoding == "BNU":
+            self._encode_dsc(encoding,label,msb,lsb,sdi,ssm,int(value))
         else:
-            raise ValueError(f"Encoding {self.encoding} not supported")
+            raise ValueError(f"Encoding {encoding} not supported")
 
-        self._add_encoding(self.encoding)
 
-    def _check_sdi(self):
-        if not 0 <= self.sdi <= 0x03:
+    def _check_sdi(self,sdi:int):
+        """
+        Check if the SDI has a valid value
+        """
+        if not 0 <= sdi <= 0x03:
             raise ValueError("The SDI cannot be negative or bigger than 0x03")
-        if self.lsb < 11 and self.sdi != 0:
-            raise ValueError("SDI must be 0 if LSB is smaller than 11")
+        # if self.lsb < 11 and self.sdi != 0:
+        #     raise ValueError("SDI must be 0 if LSB is smaller than 11")
 
-    def _check_ssm(self):
-        if not 0 <= self.ssm <= 0x03:
+    def _check_ssm(self,ssm):
+        """
+        Check if the SSM has a valid value
+        """
+        if not 0 <= ssm <= 0x03:
             raise ValueError("The SSM cannot be negative or bigger than 0x03")
 
-    def _check_msb(self,msb:Union[None,int]=None):
-        if msb: #use the method somewhere else
-            if not 11 <= msb <= 29:
+    def _check_msb(self,msb:int)->None:
+        """
+        Check if the MSB has a valid value
+        """
+        if not 11 <= msb<= 29:
                 raise ValueError(
                     "The most significant bit cannot be bigger than 29 or smaller than 11")
+    def _check_can_enc(self,lsb,value:int,msb:Union[int,None]=None)->None:
+        """
+        Checks if the next value to be encoded in the same word, can be encoded without
+        rewritting values already encoded
+        """
+        b_count = 1 if value==0 else value.bit_count()
+        pos2 = lsb+ b_count -1 # Relative position
+        if msb is not None:
+            pos2 = msb
 
-
-        if not 11 <= self.msb <= 29:
-            raise ValueError(
-                "The most significant bit cannot be bigger than 29 or smaller than 11"
-            )
-    def _check_can_enc_dsc(self,msb)->None:
-        if self.lsb < msb <self.msb:
-            raise ValueError("DSC encoding can only be used out of the used range")
+        if (self.a429vals[-1].lsb< lsb<self.a429vals[-1].msb)or \
+                (self.a429vals[-1].lsb< pos2<self.a429vals[-1].msb):
+            raise ValueError(f"You cannot encode between {lsb} and {pos2} because there is osmething encoded between {self.a429vals[-1].lsb} and {self.a429vals[-1].msb} already")
         
-
-    def _check_lsb(self):
-        if not 9 <= self.lsb <= 29:
+    def _check_lsb(self,lsb):
+        if not 9 <= lsb <= 29:
             raise ValueError(
                 "The least significant bit cannot be bigger than 29 or smaller than 9"
             )
-
-    def add_bnu(self,value:int,pos:int):
+    def _check_encoded(self):
+        """
+        Check if there are any encoded ARINC429 values.
+        
+        Raises:
+            ValueError: If no values have been encoded yet.
+        """
         if not self.a429vals:
-            raise ValueError("You need to encode a value first before adding DSC values. Use the encode method")
-        self._add_encoding("BNU")
+            raise ValueError("Can't add any values to uninitialized encoders")
+    def add_bnu(self,value:int,pos:int):
+        """
+        Add a BNU (Binary Unsigned) encoded value to your A429 word.
+
+        Args:
+            value (int): The unsigned binary value to encode
+            pos (int): The bit position where the value should be placed (9-29)(LSB)
+
+        Raises:
+            ValueError: If the position is invalid or if the value would overlap with existing encoded data
+        """
         self._check_msb(pos)
-        self._check_can_enc_dsc(pos)
+        self._check_can_enc(pos,value)
+        self._check_encoded()
 
         byte1 = self.a429vals[-1].byte1
         byte2 = self.a429vals[-1].byte2
         byte3 = self.a429vals[-1].byte3
         byte4 = self.a429vals[-1].byte4
         byte4 &= ~(1 << 7) # Clear the parity bit
+
         data = (byte4 << 24) | (byte3<<16) | (byte2<<8) | byte1
-        if pos < 11 or pos > 29:
-            raise ValueError("You cannot encode there")
         width = max(1, value.bit_length())
-        if pos+width >29:
-            raise ValueError("Value too big for the poisiton")
         mask  = (1 << width) - 1
         data &= ~(mask << (pos - 1))
         data= data| ((value& mask) << (pos - 1))
@@ -148,25 +160,29 @@ class Encoder:
         if parity:  # If not, the parity is already set to zero
             byte4 |= 0x80
 
-        self.a429vals[-1].byte2 = byte2
-        self.a429vals[-1].byte3 = byte3
-        self.a429vals[-1].byte4 = byte4
-        self.a429vals[-1].encoding += " & BNU"
-        self._build_word(byte4,byte3,byte2,byte1)
+        word = ArincWord(label=self.a429vals[-1].label,
+                         byte1=byte1,
+                         byte2=byte2,
+                         byte3=byte3,
+                         byte4=byte4,
+                         encoding="BNU",
+                         msb=pos+width,
+                         lsb=pos,
+                         sdi=self.a429vals[-1].sdi,
+                         ssm=self.a429vals[-1].ssm,
+                         value=value,
+                         offset=None,
+                         scale=None,
+                         data=data)
+        self.a429vals.append(word)
 
-
-
-
-
-    def add_dsc(self,value:int,pos:int):
+    def add_bnr(self,value:Union[int,float],lsb:int,msb:int,scale:float=1.,offset:float=0.)->None:
         """
-        Add a DSC encoded value to your A429 word.
+        Add a BNR encoded value to the word.
         """
-        if not self.a429vals:
-            raise ValueError("You need to encode a value first before adding DSC values. Use the encode method")
-        self._add_encoding("DSC")
-        self._check_msb(pos)
-        self._check_can_enc_dsc(pos)
+        self._check_msb(msb)
+        self._check_can_enc(lsb,int(value),lsb)
+        self._check_encoded()
 
         byte1 = self.a429vals[-1].byte1
         byte2 = self.a429vals[-1].byte2
@@ -174,88 +190,144 @@ class Encoder:
         byte4 = self.a429vals[-1].byte4
         byte4 &= ~(1 << 7) # Clear the parity bit
 
-        pos -= 1  # make 1-based user input into 0-based index (0-31)
+        cval = (value -offset)/scale
+        cval= int(cval) << (lsb-1)
+        data = (byte4 << 24) | (byte3<<16) | (byte2<<8) | byte1
+        data = data +cval
+        
 
-        byte_index = pos // 8         # 0: byte1, 1: byte2, 2: byte3, 3: byte4
-        bit_in_byte = pos % 8
-
-        if byte_index == 0:
-            raise ValueError(f"Invalid bit position: {pos + 1} You cannot modify the label ;(")
-        elif byte_index == 1:
-            byte2 = change_bit(byte2,bit_in_byte,value)
-        elif byte_index == 2:
-            byte3 = change_bit(byte3,bit_in_byte,value)
-        elif byte_index == 3:
-            byte4 = change_bit(byte4,bit_in_byte,value)
-        else:
-            raise ValueError(f"Invalid bit position: {pos + 1}")
-
+        byte1 = data & 0xFF
+        byte2 = (data >> 8) & 0xFF
+        byte3 = (data >> 16) & 0xFF
+        byte4 = (data >> 24) & 0xFF
 
         parity = self._get_parity(bytes([byte1, byte2, byte3, byte4]))
         if parity:  # If not, the parity is already set to zero
             byte4 |= 0x80
 
+        word = ArincWord(label=self.a429vals[-1].label,
+                         byte1=byte1,
+                         byte2=byte2,
+                         byte3=byte3,
+                         byte4=byte4,
+                         encoding="BNR",
+                         msb=msb,
+                         lsb=lsb,
+                         sdi=self.a429vals[-1].sdi,
+                         ssm=self.a429vals[-1].ssm,
+                         value=value,
+                         offset=offset,
+                         scale=scale,
+                         data=data)
+        self.a429vals.append(word)
 
-        self.a429vals[-1].byte2 = byte2
-        self.a429vals[-1].byte3 = byte3
-        self.a429vals[-1].byte4 = byte4
-        self.a429vals[-1].encoding += " & DSC"
-        self._build_word(byte4,byte3,byte2,byte1)
+
+
+    def add_dsc(self,value:int,pos:int):
+        """
+        Add a DSC (Discrete) encoded value to your A429 word.
+
+        Args:
+            value (int): The unsigned binary value to encode
+            pos (int): The bit position where the value should be placed (9-29)(LSB)
+
+        Raises:
+            ValueError: If the position is invalid or if the value would overlap with existing encoded data
+        """
+        self._check_msb(pos)
+        self._check_can_enc(pos,value)
+        self._check_encoded()
+
+        byte1 = self.a429vals[-1].byte1
+        byte2 = self.a429vals[-1].byte2
+        byte3 = self.a429vals[-1].byte3
+        byte4 = self.a429vals[-1].byte4
+        byte4 &= ~(1 << 7) # Clear the parity bit
+
+        data = (byte4 << 24) | (byte3<<16) | (byte2<<8) | byte1
+        width = max(1, value.bit_length())
+        mask  = (1 << width) - 1
+        data &= ~(mask << (pos - 1))
+        data= data| ((value& mask) << (pos - 1))
+
+        byte1 = data & 0xFF
+        byte2 = (data >> 8) & 0xFF
+        byte3 = (data >> 16) & 0xFF
+        byte4 = (data >> 24) & 0xFF
+
+        parity = self._get_parity(bytes([byte1, byte2, byte3, byte4]))
+        if parity:  # If not, the parity is already set to zero
+            byte4 |= 0x80
+
+        word = ArincWord(label=self.a429vals[-1].label,
+                         byte1=byte1,
+                         byte2=byte2,
+                         byte3=byte3,
+                         byte4=byte4,
+                         encoding="BNU",
+                         msb=pos+width,
+                         lsb=pos,
+                         sdi=self.a429vals[-1].sdi,
+                         ssm=self.a429vals[-1].ssm,
+                         value=value,
+                         offset=None,
+                         scale=None,
+                         data=data)
+        self.a429vals.append(word)
+
         
     @property
     def word(self) -> int:
-
-        return self.word_val
+        return self.a429vals[-1].word
 
     @property
     def bword(self) -> bytes:
         return self.a429vals[-1].get_bytes()
 
-    def _can_bnr(self)->None:
+    def _can_bnr(self,msb,lsb,data)->None:
         """
         Check if the value can be encoded in the BNR range 
         """
 
-        nbits = int(self.data).bit_length()
-        if nbits > self.msb - self.lsb:
+        nbits = int(data).bit_length()
+        if nbits > msb - lsb:
             raise ValueError(
-                f"Value {self.data} requires {nbits} bits. It cannot fit in the range {self.msb} to {self.lsb}"
+                f"Value {data} requires {nbits} bits. It cannot fit in the range {msb} to {lsb}"
             )
 
 
-    def _encode_bnr(self):
+    def _encode_bnr(self,encoding,label,msb,lsb,sdi,ssm,scale,offset,value):
         """
         Encode following the BNR schema
 
         data = (value - offset) / offset
         """
-        self.data = (self.value - self.offset) / self.scale
-        self._can_bnr()
+        data = (value - offset) / scale
+        self._can_bnr(msb,lsb,data)
 
         # Byte1 - label
-        byte1 = self._reverse_label(self.label)
+        byte1 = reverse_label(label)
         mov = 2
-        # Byte2 - SDI + some word stuff
 
-        if self.lsb > 11:
-            self.data = int(self.data) << (self.lsb - 11)
+        if lsb > 11:
+            data = int(data) << (lsb - 11)
 
-        elif self.lsb < 11:
-            self.data = int(self.data) >> (11 - self.lsb)
+        elif lsb < 11:
+            data = int(data) >> (11 - lsb)
 
-        byte2 = self.sdi
-        byte2 |= (int(self.data)) << mov
+        byte2 = sdi
+        byte2 |= (int(data)) << mov
         byte2 &= 0xFF
         # Byte 3: Data
         byte3 = 0
-        byte3 |= int(self.data) >> (mov + 4)
+        byte3 |= int(data) >> (mov + 4)
         byte3 &= 0xFF
         
 
         # Byte 4- Data + SSM + Parity
         byte4 = 0
-        byte4 |= (int(self.data) >> (mov + 12)) & 0x3F
-        byte4 |= self.ssm << 5
+        byte4 |= (int(data) >> (mov + 12)) & 0x3F
+        byte4 |= ssm << 5
 
         parity = self._get_parity(bytes([byte1, byte2, byte3, byte4]))
 
@@ -263,22 +335,21 @@ class Encoder:
             byte4 |= 0x80
 
 
-        word = ArincWord(label=self.label,
+        word = ArincWord(label=label,
                          byte1=byte1,
                          byte2=byte2,
                          byte3=byte3,
                          byte4=byte4,
-                         encoding=self.encoding,
-                         msb=self.msb,
-                         lsb=self.lsb,
-                         sdi=self.sdi,
-                         ssm=self.ssm,
-                         value=self.value,
-                         offset=self.offset,
-                         scale=self.scale,
-                         data=self.data)
+                         encoding=encoding,
+                         msb=msb,
+                         lsb=lsb,
+                         sdi=sdi,
+                         ssm=ssm,
+                         value=value,
+                         offset=offset,
+                         scale=scale,
+                         data=data)
         self.a429vals.append(word)
-        self._build_word(byte4,byte3,byte2,byte1)
 
     def _msb_mask(self, msb) -> int:
         masks = {
@@ -311,56 +382,47 @@ class Encoder:
         """
         Reset the encoder to the initial state
         """
-        self.data = 0
-        self.label = 0
-        self.sdi = 0
-        self.ssm = 0
-        self.value = 0
-        self.encoding = ""
-        self.msb = 29
-        self.lsb = 11
-        self.encodings = []
         self.a429vals = []
 
-    def _encode_bcd(self):
+    def _encode_bcd(self,encoding:str,label:int,sdi:int,ssm:int,value:int):
         """
         BCD encoding for arinc429 data
         """
         mov = 2  # We dont care about MSB or LSB for BCD
-        if self.value < 0:
+        if value < 0:
             raise ValueError(
                 "BCD encoding does not support negative values. Use BNR encoding instead."
             )
 
-        self.data = self.value
-        if self.value > 79999:  # Cant encode antyhing bigger than this
-            self.data = self.data // 10
+        data = value
+        if value > 79999:  # Cant encode antyhing bigger than this
+            data = data // 10
         # Encode data for BCD
-        iterval = int(self.data)
+        iterval = int(data)
         i = 0
         encVal = 0
         while iterval > 0:
             encVal |= (iterval % 10) << (4 * i)
             iterval //= 10
             i += 1
-        self.data = encVal
+        data = encVal
         # Normal encoding process
         # Byte 1
-        byte1 = self._reverse_label(self.label)
+        byte1 = reverse_label(label)
 
         # Byte 2
-        byte2 = self.sdi
-        byte2 |= (int(self.data) & 0x3F) << mov
+        byte2 = sdi
+        byte2 |= (int(data) & 0x3F) << mov
         byte2 &= 0xFF
 
         # Byte 3: Data
         byte3 = 0
-        byte3 |= int(self.data) >> (mov + 4)
+        byte3 |= int(data) >> (mov + 4)
         byte3 &= 0xFF
         # Byte 4- Data + SSM + Parity
         byte4 = 0
-        byte4 |= (int(self.data) >> (mov + 12)) & 0x3F
-        byte4 |= self.ssm << 5
+        byte4 |= (int(data) >> (mov + 12)) & 0x3F
+        byte4 |= ssm << 5
 
         parity = self._get_parity(bytes([byte1, byte2, byte3, byte4]))
 
@@ -368,89 +430,75 @@ class Encoder:
             byte4 |= 0x80
 
 
-        # self.word_list.append(self.word_val)
-        # self.blist.append(self.b_arr_val)
-
-        word = ArincWord(label=self.label,
+        word = ArincWord(label=label,
                          byte1=byte1,
                          byte2=byte2,
                          byte3=byte3,
                          byte4=byte4,
-                         encoding=self.encoding,
+                         encoding=encoding,
                          msb=None,
                          lsb=None,
-                         sdi=self.sdi,
-                         ssm=self.ssm,
-                         value=self.value,
+                         sdi=sdi,
+                         ssm=ssm,
+                         value=value,
                          offset=None,
                          scale=None,
-                         data=self.data)
+                         data=data)
         self.a429vals.append(word)
-        self._build_word(byte4,byte3,byte2,byte1)
 
 
-    def _add_encoding(self, encoding: str) -> None:
-        """
-        Add an encoding to the list of previous encodings
-        """
-        # Making sure that only one BNR or BCD encoding is present
 
-        if "BNR" in self.encodings or "BCD" in self.encodings:
-            raise ValueError("Only one BNR or BCD encoding is allowed per word")
 
-        self.encodings.append(encoding)
-
-    def _encode_dsc(self):
+    def _encode_dsc(self,encoding:str,label:int,msb:int,lsb:int,sdi:int,ssm:int,value:int):
         """
         DSC encoding for arinc429 data
         """
         mov = 2
-        data = int(self.value)
-        if (data.bit_length() > ((self.msb - self.lsb)+1)):
+        data = int(value)
+        if (data.bit_length() > ((msb - lsb)+1)):
             raise ValueError(f"You need more bits in the word to encode your binary value: {bin(data)}")
         
-        self.data = int(self.value) << (self.lsb - 11)
+        data = int(value) << (lsb - 11)
         #breakpoint()
 
         # Encode data for DSC
         # Byte 1
-        byte1 = self._reverse_label(self.label)
+        byte1 = reverse_label(label)
 
         # Byte 2
-        byte2 = self.sdi
-        byte2 |= (int(self.data) & 0x3F) << mov
+        byte2 = sdi
+        byte2 |= (int(data) & 0x3F) << mov
         byte2 &= 0xFF
 
         # Byte 3: Data
         byte3 = 0
-        byte3 |= int(self.data) >> (mov + 4)
+        byte3 |= int(data) >> (mov + 4)
         byte3 &= 0xFF
         # Byte 4- Data + SSM + Parity
         byte4 = 0
-        byte4 |= (int(self.data) >> (mov + 12)) & 0x3F
-        byte4 |= self.ssm << 5
+        byte4 |= (int(data) >> (mov + 12)) & 0x3F
+        byte4 |= ssm << 5
 
         parity = self._get_parity(bytes([byte1, byte2, byte3, byte4]))
 
         if parity:  # If not, the parity is already set to zero
             byte4 |= 0x80
 
-        word = ArincWord(label=self.label,
+        word = ArincWord(label=label,
                          byte1=byte1,
                          byte2=byte2,
                          byte3=byte3,
                          byte4=byte4,
-                         encoding=self.encoding,
-                         msb=None,
-                         lsb=None,
-                         sdi=self.sdi,
-                         ssm=self.ssm,
-                         value=self.value,
+                         encoding=encoding,
+                         msb=msb,
+                         lsb=lsb,
+                         sdi=sdi,
+                         ssm=ssm,
+                         value=value,
                          offset=None,
                          scale=None,
-                         data=self.data)
+                         data=data)
         self.a429vals.append(word)
-        self._build_word(byte4,byte3,byte2,byte1)
 
 
     def _get_parity(self, b_data: bytes) -> bool:
@@ -468,21 +516,4 @@ class Encoder:
             num_ones += bin(byte).count("1")
 
         return num_ones % 2 == 0
-
-    def _reverse_label(self, label: int) -> int:
-        self.rlabel = reverse_label(label)
-        return self.rlabel
-
-    @property
-    def data_val(self) -> Union[int, float]:
-        """
-        Return the value of the processed value to be encoded
-        """
-        return self.data
-
-    def _build_word(self,byte4,byte3,byte2,byte1):
-        """
-        Build the arinc429 32 bite word form the invidivual bytes
-        """
-        self.word_val = (byte4<<24) | (byte3<<16) | (byte2<<8) | byte1
 
