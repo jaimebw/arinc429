@@ -18,14 +18,14 @@ class ArincWord:
     sdi: int = 0
     ssm: int = 0
     value: Union[int, float] = 0
-    offset: Union[int, float] = 0
-    scale:  float = 1
+    offset: Union[int, float,None] = 0
+    scale:  Union[float,None] = 1
     data: Union[int, float] = 0
     max: Union[int,float,None] = None
     min: Union[int,float,None] = None
 
     def __repr__(self):
-        return f"ArincWord(0x{self.byte4:02x},0x{self.byte3:02x},0x{self.byte2:02x},0x{self.byte1:02x})"
+        return f"ArincWord(0x{self.byte4:02x},0x{self.byte3:02x},0x{self.byte2:02x},0x{self.byte1:02x})\n Label: {oct(self.label)}"
     @property
     def word(self):
         """

@@ -2,6 +2,8 @@
 
 Note: The API is subject to change! The encoder is working the decoder is close to working!
 
+PRs accepted!
+
 
 ## How to install
 
@@ -39,19 +41,17 @@ w1= {
         "encoding":"BNR"
         }
 w2= {
-        "label":0o205, # Same label as before
-        "value":1, # 1 or 0 as it is DSC
-        "msb":11, # We dont care about lsb
-        "encoding":"DSC"
+        "value":1, 
+        "msb":11, # Bit position
         }
 a429.encode(**det)
-a429.encode(**w2)
+a429.add_dsc(**w2)
 word = a429.word # uint32_t word
 
 
 ```
 
-If you want to encode another value using the same encoder, you need to reset the encoder before.
+If you want to encode another label using the same encoder, you need to reset the encoder before.
 ```python
 from arinc429 import Encoder 
 a429 = Encoder()
@@ -89,13 +89,20 @@ det= {
         }
 a429.add_dsc(1,29) # Add a DSC value to the word
 ```
+Same applies for BNU encoding with the ```add_bnu``` method and with BNR with the ```add_bnr``` method.
 
 The encoder takes care so you dont shoot your foot while encoding and loosing information,
 it wont let you encode something into a value that is already being used. 
 
 If you were to try use a different msb in the add_dsc method, it would raise an exception as all the bits are already being used.
 
-This wont apply to multiple DSC values, so you can rewrite the DSC values
+You can also acces the state of the word by slicing the objects:
+```python
+a429[0].word # will return the words first value when the first value was encoded
+a429[-1].word # will return the words last value when the last value was encoded
+
+```
+
 
 
 ### Container class
@@ -139,15 +146,18 @@ assert(word.value == 105)
 * [x] Encode BNR 
 * [x] Encode BCD 
 * [x] Encode DSC 
+* [x] Encode BNU
 * [x] Raw encoding ( label + value)
 * [x] Mixed encoding (DSC + BNR)
+* [x] Mixed encoding (BNU+ BNR)
+* [x] Mixed encoding (DSC + DSC)
+* [x] Mixed encoding (DSC + BNU)
+* [x] Mixed encoding (BNR+ BNR)
 * [ ] Encoding values with using the SDI/SSM as usable fields (Fun encodings)
-
 
 * [X] Decode BNR
 * [ ] Decode BCD
 * [ ] Decode DSC
-
 * [ ] Implement in C
 
 I dont really follow a specific roadmap; I just add features as I need them.
@@ -158,11 +168,12 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## Other stuff
 
-As for docs, I think the API is pretty simple and self-explanatory. If you have any questions, feel free to ask. 
+As for docs, working on it... Feel free to do a PR to the docs branch
 
 ## Change log
 
 
+* v0.1.6 - Add BNR + BNR, more test and general cleanup
 * v0.1.5 - Corrected DSC encoding, added tests and added BNU encoding
 * v0.1.4 - General bug correction
 * v0.1.3 - Working BNR decoding
@@ -170,8 +181,6 @@ As for docs, I think the API is pretty simple and self-explanatory. If you have 
 * v0.1.1 - Added BNR encoding
 * v0.1.0 - Initial release (encode BNR)
 
-
-## Documentation
 
 ## Technical Overview
 
@@ -185,6 +194,7 @@ The library currently supports or plans to support the following encoding format
 - Binary (BNR)
 - Binary Coded Decimal (BCD)
 - Discrete (DSC)
+- Binary Unsigned (BNU)
 - Hybrid formats (e.g., BNR + DSC combinations)
 - Raw encoding (custom label + value pairs)
 

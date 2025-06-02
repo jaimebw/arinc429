@@ -62,6 +62,55 @@ def test_enc_brn_msb_lsb2():
     a429.encode(**det)
     assert(a429.bword== b"\x60\x3F\x80\xdb")
     assert(a429.word== 0x603f80db)
+def test_enc_bnr_mult():
+    a429 = Encoder()
+    det={
+            "label":0o333,
+            "value":127.7,
+            "ssm": 0x03,
+            "sdi":0,
+            "msb": 26,
+            "lsb": 19,
+            "scale":1,
+            "encoding":"BNR"
+            }
+    a429.encode(**det)
+    assert a429.word== 0x61FC00DB
+    assert a429.bword== b"\x61\xFC\x00\xdb"
+    a429.add_bnr(
+            value=127.7,
+            msb =18,
+            lsb = 11,
+            scale = 1,
+            offset= 0)
+    assert a429.bword== b"\xE1\xFD\xFC\xDB"
+    assert a429.word== 0xE1FDFCDB
+
+def test_enc_slice():
+    a429 = Encoder()
+    det={
+            "label":0o333,
+            "value":127.7,
+            "ssm": 0x03,
+            "sdi":0,
+            "msb": 26,
+            "lsb": 19,
+            "scale":1,
+            "encoding":"BNR"
+            }
+    a429.encode(**det)
+    assert a429.word== 0x61FC00DB
+    assert a429.bword== b"\x61\xFC\x00\xdb"
+    a429.add_bnr(
+            value=127.7,
+            msb =18,
+            lsb = 11,
+            scale = 1,
+            offset= 0)
+    assert a429[0].word== 0x61FC00DB
+    assert a429[1].word== 0xE1FDFCDB
+    assert a429[-1].word== 0xE1FDFCDB
+
 
 def test_enc_brn_msb_not_enough_bits():
     a429 = Encoder()
@@ -95,4 +144,5 @@ def test_enc_bnr_msb_lsb_more_info_no_sdi():
     a429.encode(**det)
     assert(a429.bword== b"\x60\x3F\x80\xdb")
     assert(a429.word== 0x603f80db)
+
 
