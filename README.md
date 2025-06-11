@@ -4,6 +4,7 @@
 [![Build Status](https://github.com/jaimebw/arinc429/actions/workflows/run-tests.yml/badge.svg)](https://github.com/jaimebw/arinc429/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Versions](https://img.shields.io/pypi/pyversions/arinc429.svg)](https://pypi.org/project/arinc429/)
+[![Downloads](https://img.shields.io/pypi/dm/arinc429.svg)](https://pypi.org/project/arinc429/)
 
 Note: The API is subject to change! The encoder is working the decoder is close to working!
 
