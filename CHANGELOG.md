@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.1.7
+- BCD decoder support, docs updates, and additional tests
+
 ## v0.1.6
 - Add BNR + BNR, more test and general cleanup
 
