@@ -69,8 +69,14 @@ class Decoder:
         self.dword.label = reverse_label(self.dword.byte1)
 
     def _decode_bcd(self)->ArincWord:
-        self.dword.data = ((self.dword.byte4 & 0x1F)<<14) | ((self.dword.byte3)<<6) | ((self.dword.byte2 & 0xFC)>>2)
-        self.dword.data = self.dword.data >> (self.dword.lsb -11) if self.dword.lsb >= 11 else self.dword.data << (11-self.dword.lsb)
+        self.dword.data = ((self.dword.byte4 & 0x1F) << 14) | (self.dword.byte3 << 6) | ((self.dword.byte2 & 0xFC) >> 2)
+        value = 0
+        for i in range(5):
+            digit = (self.dword.data >> (4 * i)) & 0xF
+            if digit > 9:
+                raise ValueError(f"Invalid BCD digit: {digit}")
+            value += digit * (10 ** i)
+        self.dword.value = value
         return self.dword
 
     def _decode_sdi_ssm(self):
