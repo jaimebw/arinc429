@@ -1,6 +1,6 @@
-# PyArinc 429
+# PyArinc429
 
-Note: The API is subject to change! The encoder is working the decoder is close to working!
+Note: The API is subject to change. Encoding is stable; decoding is available for BNR and BCD.
 
 PRs accepted!
 
@@ -125,7 +125,7 @@ output a string with a bit formatting of the word. Check src/common.py for more 
 
 ### Decoder
 
-This is WIP. Wont work sometimes...
+Decoder supports BNR and BCD.
 
 
 ```python
@@ -156,7 +156,7 @@ assert(word.value == 105)
 * [ ] Encoding values with using the SDI/SSM as usable fields (Fun encodings)
 
 * [X] Decode BNR
-* [ ] Decode BCD
+* [X] Decode BCD
 * [ ] Decode DSC
 * [ ] Implement in C
 
@@ -166,26 +166,20 @@ I dont really follow a specific roadmap; I just add features as I need them.
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-## Other stuff
+## Docs
 
-As for docs, working on it... Feel free to do a PR to the docs branch
+Docs are generated with Sphinx from docstrings and live in `docs/`.
 
-## Change log
+## Changelog
 
-
-* v0.1.6 - Add BNR + BNR, more test and general cleanup
-* v0.1.5 - Corrected DSC encoding, added tests and added BNU encoding
-* v0.1.4 - General bug correction
-* v0.1.3 - Working BNR decoding
-* v0.1.2 - Added BCD, DSC, BNR + DSC encoding
-* v0.1.1 - Added BNR encoding
-* v0.1.0 - Initial release (encode BNR)
+See `CHANGELOG.md`.
 
 
 ## Technical Overview
 
 This library provides comprehensive support for encoding and decoding ARINC 429 data words. 
 ARINC 429 is a widely used avionics data bus specification that defines how avionics systems communicate in aircraft.
+If you want a high-level explainer, see https://www.jaimebw.com/2024-11-11-encoding-arinc429/.
 
 ### Supported Encodings
 
@@ -208,6 +202,10 @@ The library is designed to be flexible and extensible, allowing for:
 - Support for various SSM (Sign/Status Matrix) configurations
 
 For specific encoding requirements or custom implementations, please refer to the examples section above.
+
+## License
+
+MIT License. See `LICENSE`.
 
 
 "I steal fire not with torches, but with code. Not for men — but for the machines that do not dream yet."

@@ -1,0 +1,10 @@
+/* Keep default Sphinx layout; only override typography. */
+
+body {
+  font-family: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+code,
+pre {
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
